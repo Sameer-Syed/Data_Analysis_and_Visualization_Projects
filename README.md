@@ -1,2 +1,9 @@
-# Data Analytics Project
-A guided pilot project which analyzes the app market (both iOS and Android) to propose which genre and category of apps would be more profitable for businesses to develop.
+# Data Analytics and Visualization Projects
+
+Hi People,
+
+Thank you for visiting my Github "Data Analysis and Visualizations" repo.
+
+This repo serves as single point of truth of my learning and implementation of Data Analysis Techniques, Methodolgies, Frameworks etc..,
+
+You are also welcome to visit [My LinkedIn Page](https://www.linkedin.com/in/syed-sai-sameer/). 
