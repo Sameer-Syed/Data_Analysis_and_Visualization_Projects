@@ -1,0 +1,183 @@
+---
+title: "Exploring the BRFSS Data"
+author: "Sameer"
+date: "10/27/2020"
+output: 
+  html_document:
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## LOAD PACKAGES
+
+```{r load packages, message = FALSE}
+
+library(ggplot2)
+library(dplyr)
+library(stringr)
+```
+
+## LOAD DATA
+
+```{r loading data}
+
+load("brfss2013.RData")
+
+```
+
+* * *
+
+## PART 1: About Data
+
+The BRFSS is administered and supported by CDC’s Population Health Surveillance Branch, under the Division of Population Health at the National Center for Chronic Disease Prevention and Health Promotion. BRFSS is an ongoing surveillance system designed to measure behavioral risk factors for the non-institutionalized adult population (18 years of age and older) residing in the US.
+
+### Generalizability
+
+Since random sampling is used and the size of the data set is significant standing at 491,775 the size allows us to generalize the findings to a larger population of interest. The random sampling technique employed is a large stratified sampling method, as the samples are collected from different states and territories of US.
+
+### Causality
+
+We cannot draw causation from this data set because their is no random assignment used here and findings are part of an observational study and are potentially effected by non-response bias and convenience bias as the mode of data collection is through landline or telephone only.
+
+## PART 2: RESEARCH QUESTIONS
+
+**Research Question 1:**
+
+1) How does having or not having sufficient sleep impact mental health status from the data as reported by population? An age old question of sleeping benefits on mental health has been a point discussion and personally i worked in a night shift and had random sleep patterns, so i want to know if sleep really has an impact on mental health.
+
+**Research Question 2:**
+
+2) How does income level impact mental health status who self reported having less than recommended sleep time? Recently, because of the pandemic situation there were salary cuts and it tightened the spending capacity of people; this question particularly seemed interesting to me as how having different income levels really has an impact on sleep pattern and mental health status.
+
+**Research Question 3:**
+
+3) How does obesity levels and sleep pattern has association with health status among population from the survey? This is interesting to me because i had strong belief that being fit would result in better health status and i have mixed sleep into it to find if being fit would also impact a better sleeping habit.
+
+## PART 3: EXPLORATORY DATA ANALYSIS
+
+Let's first select the subset of columns from brfss2013 survey data which are of our interest.
+
+```{r BRFSS DATA}
+
+df <- brfss2013 %>% select(menthlth, X_incomg, sleptim1, genhlth, X_bmi5cat) %>% na.omit()
+
+```
+
+---
+
+**Research Question 1 Analysis**
+
+Variables of our interest for the RQ1:  
+ - menthlth  
+ - sleptim1  
+
+Let's create a new variable from sleptim1 to find the population who reportedly had sufficient sleep / not had sufficient sleep.
+
+```{r Summary of sleep time in proportion}
+prop.table(table(df$sleptim1)*100)
+```
+
+```{r sleep time distribution}
+plot(df %>% group_by(sleptim1) %>% summarise(count = n()))
+```
+
+We are going to consider population who slept above or equal to 7 hours as "Had Sufficient Sleep" and below "Not Had Sufficient Sleep".  
+**Ref:** https://www.health.harvard.edu/staying-healthy/how-much-sleep-do-we-really-need
+
+```{r sufsleep}
+df <- df %>% mutate(sufsleep = df$sleptim1 >= 7)
+```
+
+```{r Sufficient Sleep Distribution}
+prop.table(table(df$sufsleep)*100)
+```
+
+We are also going to segregate mental health status as reported by population into three levels based on the days had mental health issues.
+
+```{r mental health levels}
+df <- df %>% mutate(menthlthlvl = if_else(df$menthlth<=10,"LVL 1",if_else(df$menthlth<=20,"LVL 2", "LVL 3")))
+```
+
+Now, let's plot the distribution of population between sufficient sleep and mental health status levels.
+
+```{r mental health levels VS Sufficient Sleep}
+ggplot(df) + aes(x=sufsleep, fill=menthlthlvl) + geom_bar(position = "fill") + 
+xlab("Had Sufficient Sleep") + ylab("Proportion") + scale_fill_discrete(name="Mental Health Level")
+```
+
+**Conclusion**  
+ - From the distribution it appears that people who had sufficient sleep dealt with lesser duration from mental health issues.
+
+---
+
+**Research Question 2 Analysis**
+
+Variables of our interest for RQ2:  
+ - sufsleep  
+ - menthlthlvl  
+ - X_incomg  
+
+Income distribution among population from the observational data is as below.
+
+```{r income distribution summary}
+totalObsCount <- nrow(df)
+df %>% group_by(X_incomg) %>% summarise(percent = n()/totalObsCount*100)
+```
+
+Plotting the income distribution graph for better understanding of data spread.
+
+```{r income distribution plot}
+ggplot(df, aes(x=X_incomg)) + geom_bar(color = "red", fill = "orange") + ggtitle('Income Distribution') + xlab('Income') + coord_flip()
+```
+
+Let's add the income distribution to the plot of mental health levels and sufficient sleep to find any impact of income distribution.
+
+```{r income distribution vs mental health lvl vs sufsleep}
+df <- mutate(df, X_incomg_wrap = str_wrap(X_incomg, width = 14))
+ggplot(df) + aes(x=sufsleep, fill=menthlthlvl) + geom_bar(position = "fill") + facet_grid(.~X_incomg_wrap) + xlab("Health Care Coverage") + ylab("Proportion") + scale_fill_discrete(name="Reported Health")
+```
+
+**Conclusion** 
+
+ - It is evident from the plot that income level had a positive impact on mental health levels and sleep hours among population.
+
+ - Higher the income level, higher proportion of population reported better sleep hours and less period under mental health issues.
+
+ - Lower the income level, lower proportion of population reported better sleep hours and higher period under mental health issues.
+
+---
+
+**Research Question 3 Analysis**
+
+Variables of our interest for RQ3:  
+ - sleptim1  
+ - genhlth  
+ - X_bmi5cat  
+
+Let's view the obesity distribution as a proportion among population.
+
+```{r general health proportion distribution}
+prop.table(table(df$X_bmi5cat)*100)
+plot(df %>% group_by(X_bmi5cat) %>% summarise(count = n()))
+```
+
+Let's view the BMI distribution as a proportion among population.
+```{r BMI Population distribution}
+prop.table(table(df$genhlth)*100)
+plot(df %>% group_by(genhlth) %>% summarise(count = n()))
+```
+
+We are plotting the relation and impact of obesity levels and sleep time on general health among population.
+
+```{r sleep time vs obesity levels vs general health}
+ggplot(data = df , aes(x = genhlth, y = sleptim1)) +  geom_violin() + xlab("Obese - Health Status") + ylab ("Hours of sleep") + scale_y_continuous(limits = c(4, 11), breaks = c(4:11)) +  coord_flip() + facet_grid(.~X_bmi5cat)
+```
+
+**Conclusion**
+
+ - It is not too clear from the plot the relation between obesity levels on general health status.
+
+ - However, we can say from the plot we observe that population who reported fair and poor health status are too dispersed among the sleep time levels.
+
+ - People who reported better health status had their sleep time heavily concentrated around the recommended sleep time (6, 7 8) hours.
